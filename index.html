@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Graffiti Tour Vijes</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css"/>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+
+<style>
+body { margin:0; font-family:Arial; overflow:hidden; }
+#mapa { height:100vh; }
+.leaflet-routing-container { display:none !important; }
+
+.sheet {
+  position:absolute;
+  bottom:0;
+  width:100%;
+  height:150px;
+  background:white;
+  border-radius:20px 20px 0 0;
+  box-shadow:0 -5px 20px rgba(0,0,0,0.3);
+  z-index:9999;
+}
+
+.handle {
+  width:40px;
+  height:5px;
+  background:#ccc;
+  border-radius:10px;
+  margin:10px auto;
+}
+
+.content { padding:10px; }
+
+h2 { font-size:22px; }
+p { font-size:18px; }
+
+button {
+  width:100%;
+  padding:14px;
+  font-size:18px;
+  border:none;
+  border-radius:10px;
+  margin-top:8px;
+}
+
+.btn-audio { background:#3498db; color:white; }
+.btn-next { background:#2ecc71; color:white; }
+</style>
+</head>
+
+<body>
+
+<div id="mapa"></div>
+
+<div class="sheet">
+  <div class="handle"></div>
+  <div id="contenido" class="content">
+    <h2>📡 Cargando ubicación...</h2>
+  </div>
+</div>
+
+<script>
+
+let mapa = L.map('mapa').setView([3.7001,-76.4427],17);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapa);
+
+const murales = [
+{n:"Poetiza tu cotidiano",lat:3.7001198,lng:-76.4427437,a:"Mira lo cotidiano con nuevos ojos."},
+{n:"El tesoro del sol",lat:3.6998287,lng:-76.4426877,a:"Memoria ancestral."},
+{n:"El último sueño de la Calima",lat:3.6998444,lng:-76.4427749,a:"Herencia indígena."},
+{n:"Memoria viva",lat:3.700996,lng:-76.4433965,a:"Historia viva."},
+{n:"Vijes geometría viva",lat:3.7003282,lng:-76.4413265,a:"Nombre hecho arte."},
+{n:"Herencia viva",lat:3.7002728,lng:-76.441256,a:"Legado cultural."},
+{n:"Manitos que transforman",lat:3.7001997,lng:-76.4408594,a:"Tradición."},
+{n:"La chiva",lat:3.7001141,lng:-76.4405342,a:"Vida cotidiana."},
+{n:"Entrelace",lat:3.6999729,lng:-76.4403914,a:"Saberes."},
+{n:"Cian",lat:3.6998541,lng:-76.4399207,a:"Naturaleza."}
+];
+
+let indiceActual = 0;
+let rutaControl = null;
+
+function dist(a,b,c,d){
+ const R=6371000;
+ const dLat=(c-a)*Math.PI/180;
+ const dLon=(d-b)*Math.PI/180;
+ const x=Math.sin(dLat/2)**2+
+ Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*
+ Math.sin(dLon/2)**2;
+ return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+
+function hablar(t){
+ let m=new SpeechSynthesisUtterance(t);
+ m.lang="es-ES";
+ speechSynthesis.cancel();
+ speechSynthesis.speak(m);
+}
+
+function actualizarSistema(lat,lng){
+
+ let destino = murales[indiceActual];
+
+ if(rutaControl) mapa.removeControl(rutaControl);
+
+ rutaControl = L.Routing.control({
+  waypoints:[
+    L.latLng(lat,lng),
+    L.latLng(destino.lat,destino.lng)
+  ],
+  router:L.Routing.osrmv1({profile:'foot'}),
+  createMarker:()=>null,
+  addWaypoints:false,
+  draggableWaypoints:false,
+  show:false
+ }).addTo(mapa);
+
+ let d = dist(lat,lng,destino.lat,destino.lng);
+
+ if(d < 15){
+
+   document.getElementById("contenido").innerHTML = `
+     <h2>📍 ${destino.n}</h2>
+     <p>Mural ${indiceActual+1} de ${murales.length}</p>
+
+     <button class="btn-audio" onclick="hablar('${destino.a}')">
+       🔊 Escuchar
+     </button>
+
+     <button class="btn-next" onclick="siguiente()">
+       ➡️ Siguiente
+     </button>
+   `;
+
+   hablar(destino.a);
+
+ } else {
+
+   if(indiceActual === 0){
+     document.getElementById("contenido").innerHTML = `
+       <h2>📍 Dirígete al inicio</h2>
+       <p>${destino.n}</p>
+       <p>${d.toFixed(0)} metros</p>
+     `;
+   } else {
+     document.getElementById("contenido").innerHTML = `
+       <h2>➡️ Siguiente mural</h2>
+       <p>${destino.n}</p>
+       <p>${d.toFixed(0)} metros</p>
+     `;
+   }
+ }
+}
+
+function siguiente(){
+ indiceActual++;
+
+ if(indiceActual >= murales.length){
+   document.getElementById("contenido").innerHTML = `
+     <h2>🎉 Recorrido completado</h2>
+     <p>Gracias por visitar Vijes</p>
+   `;
+ }
+}
+
+navigator.geolocation.watchPosition(pos=>{
+
+ if(pos.coords.accuracy > 25){
+   document.getElementById("contenido").innerHTML =
+   "<h2>📡 Ajustando GPS... camina unos pasos</h2>";
+   return;
+ }
+
+ actualizarSistema(pos.coords.latitude,pos.coords.longitude);
+
+},{
+ enableHighAccuracy:true,
+ maximumAge:0,
+ timeout:5000
+});
+
+</script>
+
+</body>
+</html>
