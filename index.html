@@ -328,6 +328,13 @@ function iniciarTour(){
   iniciarGPS();
 }
 
+function reiniciarTour(){
+  localStorage.removeItem('vijes_indice');
+  indiceActual=0; tourTerminado=false;
+  renderActual=-1; vozDisparada=false;
+  iniciarTour();
+}
+
 // ── VOZ ──
 function obtenerVozFemenina(){
   const voces=window.speechSynthesis.getVoices();
@@ -641,8 +648,24 @@ function iniciarGPS(){
     return;
   }
 
+  // Mostrar mensaje si el GPS tarda más de 10 segundos
+  const gpsTimeout = setTimeout(()=>{
+    if(document.getElementById('sk').style.display !== 'none') {
+      document.getElementById('sk').style.display='none';
+      document.getElementById('cont').style.display='block';
+      document.getElementById('dot').classList.add('err');
+      document.getElementById('gtxt').textContent='GPS lento — activa la ubicación';
+      document.getElementById('cont').innerHTML=`
+        <div class="error">
+          <strong>El GPS está tardando</strong>
+          Activa la ubicación en tu celular y recarga la página. Si el problema persiste, asegúrate de estar en un lugar abierto con buena señal.
+        </div>`;
+    }
+  }, 10000);
+
   navigator.geolocation.watchPosition(
     async pos=>{
+      clearTimeout(gpsTimeout);
       const {latitude:la,longitude:lo}=pos.coords;
       document.getElementById('dot').classList.add('on');
       document.getElementById('gtxt').textContent='Ubicación activa';
@@ -678,6 +701,7 @@ function iniciarGPS(){
       }
     },
     err=>{
+      clearTimeout(gpsTimeout);
       document.getElementById('sk').style.display='none';
       document.getElementById('cont').style.display='block';
       document.getElementById('dot').classList.add('err');
@@ -689,4 +713,35 @@ function iniciarGPS(){
   );
 }
 
-// Si ya había avanzado antes, ir directo a 
+// Auto-reinicio: si han pasado más de 8 horas, empezar desde cero
+const ultimaVisita = parseInt(localStorage.getItem('vijes_ultima_visita') || '0');
+const ahora = Date.now();
+const OCHO_HORAS = 8 * 60 * 60 * 1000;
+const UNA_HORA = 10 * 60 * 1000; // 10 minutos
+if(ahora - ultimaVisita > OCHO_HORAS) {
+  localStorage.removeItem('vijes_indice');
+  indiceActual = 0;
+}
+// Si el tour está completo y ha pasado más de 1 hora, reiniciar
+if(indiceActual >= murales.length && ahora - ultimaVisita > UNA_HORA) {
+  localStorage.removeItem('vijes_indice');
+  indiceActual = 0;
+}
+// Guardar timestamp de esta visita
+localStorage.setItem('vijes_ultima_visita', ahora);
+
+// Limpiar estado si está en un valor inválido
+if(indiceActual > murales.length) {
+  localStorage.removeItem('vijes_indice');
+  indiceActual = 0;
+}
+
+// Si ya había avanzado antes, ir directo a la app
+if(indiceActual>0){
+  document.getElementById('pantalla-bienvenida').style.display='none';
+  document.getElementById('app').style.display='block';
+  iniciarGPS();
+}
+</script>
+</body>
+</html>
