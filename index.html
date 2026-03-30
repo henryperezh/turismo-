@@ -1094,6 +1094,8 @@ function leerTextoEncadenado(texto1, etiqueta1, texto2, etiqueta2, indiceSegundo
         await mostrarMural(m2, dist2, uLa, uLo);
       }
 
+      // FIX Bug 1 & 2: resetear vozDisparada para que la segunda voz pueda activarse
+      vozDisparada=false;
       const utt2 = new SpeechSynthesisUtterance(texto2);
       utt2.lang='es-CO'; utt2.rate=0.92; utt2.pitch=1.1;
       const asignar2=()=>{const v=obtenerVozFemenina();if(v)utt2.voice=v;};
@@ -1343,7 +1345,8 @@ function dibujarLinea(coords){
 
   // Flechitas naranjas pequeñas a lo largo de la línea recta
   const p1=coords[0], p2=coords[coords.length-1];
-  const angle=Math.atan2(p2[1]-p1[1], p2[0]-p1[0])*(180/Math.PI);
+  // FIX Bug 3: corregir orden de argumentos en atan2 para lat/lng (coords=[lat,lng])
+  const angle=Math.atan2(p2[0]-p1[0], p2[1]-p1[1])*(180/Math.PI);
   const pasos=6;
   for(let i=1;i<pasos;i++){
     const t=i/pasos;
