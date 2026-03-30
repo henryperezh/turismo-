@@ -996,6 +996,8 @@ let indiceActual = parseInt(localStorage.getItem('vijes_indice') || '0');
 let mapa=null, capasRuta=[], marcadorUsuario=null;
 let vozActiva=false, vozDisparada=false, renderActual=-1;
 let tourTerminado = false;
+let ultimaLat=0, ultimaLng=0; // última posición GPS conocida
+let rutaDibujada=false; // evita doble línea de flechitas
 
 // Distancia de activación: 8 metros
 const DIST_VOZ = 8;
@@ -1060,7 +1062,8 @@ function leerTexto(texto,etiqueta){
 }
 
 // Encadena dos guiones: espera onend real del primero antes de iniciar el segundo
-function leerTextoEncadenado(texto1, etiqueta1, texto2, etiqueta2){
+// indiceSegundo: índice en el array murales del segundo mural (para avanzar la card)
+function leerTextoEncadenado(texto1, etiqueta1, texto2, etiqueta2, indiceSegundo){
   if(!window.speechSynthesis) return;
   vozEncadenada=true;
   window.speechSynthesis.cancel();
@@ -1075,8 +1078,22 @@ function leerTextoEncadenado(texto1, etiqueta1, texto2, etiqueta2){
   document.getElementById('voz-txt').textContent=etiqueta1||'Leyendo...';
 
   utt1.onend=()=>{
-    setTimeout(()=>{
+    setTimeout(async ()=>{
       if(!window.speechSynthesis){vozEncadenada=false;return;}
+
+      // Avanzar automáticamente a la card del segundo mural
+      if(indiceSegundo!=null){
+        indiceActual=indiceSegundo;
+        localStorage.setItem('vijes_indice', indiceActual);
+        renderActual=indiceActual;
+        progreso(); lista();
+        const m2=murales[indiceSegundo];
+        // Obtener última posición conocida del GPS
+        const uLa=ultimaLat, uLo=ultimaLng;
+        const dist2=Math.sqrt(Math.pow((uLa-m2.lat)*111000,2)+Math.pow((uLo-m2.lng)*111000*Math.cos(uLa*Math.PI/180),2));
+        await mostrarMural(m2, dist2, uLa, uLo);
+      }
+
       const utt2 = new SpeechSynthesisUtterance(texto2);
       utt2.lang='es-CO'; utt2.rate=0.92; utt2.pitch=1.1;
       const asignar2=()=>{const v=obtenerVozFemenina();if(v)utt2.voice=v;};
@@ -1275,6 +1292,7 @@ const RUTA_KML = [
 
 async function dibujarRutaKML(uLa, uLo, mLat, mLng){
   capasRuta.forEach(c=>mapa.removeLayer(c)); capasRuta=[];
+  rutaDibujada=false;
 
   // Intentar OSRM (gratuito, peatonal, sin API key, funciona en Colombia)
   try{
@@ -1320,6 +1338,8 @@ async function dibujarRutaKML(uLa, uLo, mLat, mLng){
 
 function dibujarLinea(coords){
   if(coords.length<2) return;
+  if(rutaDibujada) return; // evita doble línea
+  rutaDibujada=true;
 
   // Flechitas naranjas pequeñas a lo largo de la línea recta
   const p1=coords[0], p2=coords[coords.length-1];
@@ -1553,6 +1573,7 @@ function iniciarGPS(){
     async pos=>{
       clearTimeout(gpsTimeout);
       const {latitude:la,longitude:lo,heading:hdg}=pos.coords;
+      ultimaLat=la; ultimaLng=lo; // guardar siempre la última posición
       document.getElementById('dot').classList.add('on');
       document.getElementById('gtxt').textContent='Ubicación activa';
       document.getElementById('sk').style.display='none';
@@ -1582,7 +1603,8 @@ function iniciarGPS(){
           setTimeout(()=>{
             leerTextoEncadenado(
               murales[0].guion, '🎙 Llegaste a: '+murales[0].nombre,
-              murales[1].guion, '🎙 '+murales[1].nombre
+              murales[1].guion, '🎙 '+murales[1].nombre,
+              1
             );
           }, 1000);
         }
@@ -1601,7 +1623,8 @@ function iniciarGPS(){
           setTimeout(()=>{
             leerTextoEncadenado(
               murales[4].guion, '🎙 Llegaste a: '+murales[4].nombre,
-              murales[5].guion, '🎙 '+murales[5].nombre
+              murales[5].guion, '🎙 '+murales[5].nombre,
+              5
             );
           }, 1000);
         }
