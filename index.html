@@ -1409,7 +1409,7 @@ async function mostrarMural(m,dist,uLa,uLo){
     if(!mapa) return;
     mapa.invalidateSize();
     mapa.fitBounds([[uLa,uLo],[m.lat,m.lng]],{padding:[40,40]});
-  }, 450);
+  }, 80);
 
   // Ruta peatonal real por calles (OSRM) con fallback offline
   await dibujarRutaKML(uLa,uLo,m.lat,m.lng);
@@ -1602,14 +1602,12 @@ function iniciarGPS(){
           vozDobleDisparada=true;
           vozDisparada=true;
           if(navigator.vibrate) navigator.vibrate([200,100,200,100,200]);
-          // Esperar 1s, leer mural 1, y al terminar esperar 1s más para leer mural 2
-          setTimeout(()=>{
-            leerTextoEncadenado(
-              murales[0].guion, '🎙 Llegaste a: '+murales[0].nombre,
-              murales[1].guion, '🎙 '+murales[1].nombre,
-              1
-            );
-          }, 1000);
+          // Leer mural 1 inmediatamente; la voz 2 se activa 1s después de que termina la voz 1
+          leerTextoEncadenado(
+            murales[0].guion, '🎙 Llegaste a: '+murales[0].nombre,
+            murales[1].guion, '🎙 '+murales[1].nombre,
+            1
+          );
         }
       }
 
@@ -1623,13 +1621,12 @@ function iniciarGPS(){
           vozDoble56Disparada=true;
           vozDisparada=true;
           if(navigator.vibrate) navigator.vibrate([200,100,200,100,200]);
-          setTimeout(()=>{
-            leerTextoEncadenado(
-              murales[4].guion, '🎙 Llegaste a: '+murales[4].nombre,
-              murales[5].guion, '🎙 '+murales[5].nombre,
-              5
-            );
-          }, 1000);
+          // Leer mural 5 inmediatamente; la voz 6 se activa 1s después de que termina la voz 5
+          leerTextoEncadenado(
+            murales[4].guion, '🎙 Llegaste a: '+murales[4].nombre,
+            murales[5].guion, '🎙 '+murales[5].nombre,
+            5
+          );
         }
       }
 
