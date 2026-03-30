@@ -1381,15 +1381,12 @@ async function mostrarMural(m,dist,uLa,uLo){
   L.marker([m.lat,m.lng],{icon:iM()}).bindTooltip(m.nombre).addTo(mapa);
   marcadorUsuario=L.marker([uLa,uLo],{icon:iU(typeof hdg!=='undefined'&&hdg!==null?hdg:0)}).bindTooltip('Tú estás aquí').addTo(mapa);
 
-  // Vista orientada: mural arriba, turista abajo
-  // Calculamos el centro desplazado un 20% hacia el mural
-  const cLat = uLa + (m.lat - uLa) * 0.7;
-  const cLng = uLo + (m.lng - uLo) * 0.5;
-  // Zoom basado en distancia
   const distM = Math.sqrt(Math.pow((uLa-m.lat)*111000,2)+Math.pow((uLo-m.lng)*111000*Math.cos(uLa*Math.PI/180),2));
-  const zoom = distM < 50 ? 19 : distM < 120 ? 18 : distM < 250 ? 17 : 16;
-  mapa.setView([cLat, cLng], zoom);
-  setTimeout(()=>{if(mapa)mapa.invalidateSize();},400);
+  setTimeout(()=>{
+    if(!mapa) return;
+    mapa.invalidateSize();
+    mapa.fitBounds([[uLa,uLo],[m.lat,m.lng]],{padding:[40,40]});
+  }, 450);
 
   // Ruta peatonal real por calles (OSRM) con fallback offline
   await dibujarRutaKML(uLa,uLo,m.lat,m.lng);
