@@ -1002,21 +1002,7 @@ let rutaDibujada=false; // evita doble línea de flechitas
 // Distancia de activación: 8 metros
 const DIST_VOZ = 8;
 
-// Puntos alternativos de activación para murales 1 y 2 (zona compartida)
-const ZONAS_MURALES_1_2 = [
-  {lat:3.699915, lng:-76.44268},    // coord original mural 1
-  {lat:3.699939, lng:-76.442757},   // coord original mural 2
-  {lat:3.699927, lng:-76.442718},   // punto intermedio
-];
-let vozDobleDisparada = false; // evita repetir la secuencia 1+2
 
-// Puntos alternativos de activación para murales 5 y 6 (zona compartida)
-const ZONAS_MURALES_5_6 = [
-  {lat:3.700376, lng:-76.441307},   // coord original mural 5
-  {lat:3.700336, lng:-76.441241},   // coord original mural 6
-  {lat:3.700356, lng:-76.441274},   // punto intermedio
-];
-let vozDoble56Disparada = false; // evita repetir la secuencia 5+6
 
 // ── BIENVENIDA ──
 function iniciarTour(){
@@ -1028,7 +1014,7 @@ function iniciarTour(){
 function reiniciarTour(){
   localStorage.removeItem('vijes_indice');
   indiceActual=0; tourTerminado=false;
-  renderActual=-1; vozDisparada=false; vozDobleDisparada=false; vozDoble56Disparada=false; vozEncadenada=false;
+  renderActual=-1; vozDisparada=false; vozEncadenada=false;
   iniciarTour();
 }
 
@@ -1608,46 +1594,8 @@ function iniciarGPS(){
         Math.pow((lo-m.lng)*111000*Math.cos(la*Math.PI/180),2)
       );
 
-      // Caso especial: murales 1 y 2 comparten zona de activación
-      if(indiceActual===0 && !vozDobleDisparada){
-        const enZona = ZONAS_MURALES_1_2.some(p=>{
-          const d=Math.sqrt(Math.pow((la-p.lat)*111000,2)+Math.pow((lo-p.lng)*111000*Math.cos(la*Math.PI/180),2));
-          return d<=DIST_VOZ;
-        });
-        if(enZona){
-          vozDobleDisparada=true;
-          vozDisparada=true;
-          if(navigator.vibrate) navigator.vibrate([200,100,200,100,200]);
-          // Leer mural 1 inmediatamente; la voz 2 se activa 1s después de que termina la voz 1
-          leerTextoEncadenado(
-            murales[0].guion, '🎙 Llegaste a: '+murales[0].nombre,
-            murales[1].guion, '🎙 '+murales[1].nombre,
-            1
-          );
-        }
-      }
-
-      // Caso especial: murales 5 y 6 comparten zona de activación
-      if(indiceActual===4 && !vozDoble56Disparada){
-        const enZona = ZONAS_MURALES_5_6.some(p=>{
-          const d=Math.sqrt(Math.pow((la-p.lat)*111000,2)+Math.pow((lo-p.lng)*111000*Math.cos(la*Math.PI/180),2));
-          return d<=DIST_VOZ;
-        });
-        if(enZona){
-          vozDoble56Disparada=true;
-          vozDisparada=true;
-          if(navigator.vibrate) navigator.vibrate([200,100,200,100,200]);
-          // Leer mural 5 inmediatamente; la voz 6 se activa 1s después de que termina la voz 5
-          leerTextoEncadenado(
-            murales[4].guion, '🎙 Llegaste a: '+murales[4].nombre,
-            murales[5].guion, '🎙 '+murales[5].nombre,
-            5
-          );
-        }
-      }
-
-      // Activación normal para todos los demás murales (excluye 1 y 5 que tienen lógica doble, pero incluye 2 y 6)
-      if(indiceActual>0 && indiceActual!==4 && dist<=DIST_VOZ && !vozDisparada && !vozActiva){
+      // Activación de voz al llegar a cualquier mural
+      if(dist<=DIST_VOZ && !vozDisparada && !vozActiva){
         vozDisparada=true;
         if(navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
         setTimeout(()=>leerTexto(m.guion,'🎙 Llegaste a: '+m.nombre), 1000);
