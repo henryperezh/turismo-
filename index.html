@@ -1641,6 +1641,8 @@ function enviarEncuesta(){
   // Parar voz
   if(window.speechSynthesis) window.speechSynthesis.cancel();
   if(window._audioActual){window._audioActual.pause();window._audioActual=null;}
+  // Detener GPS
+  if(window._gpsWatchId != null){ navigator.geolocation.clearWatch(window._gpsWatchId); window._gpsWatchId=null; }
   // Mostrar pantalla de agradecimiento
   document.getElementById('enc-body').style.display='none';
   document.getElementById('enc-gracias').style.display='block';
@@ -1682,7 +1684,7 @@ function iniciarGPS(){
     }
   }, 10000);
 
-  navigator.geolocation.watchPosition(
+  window._gpsWatchId = navigator.geolocation.watchPosition(
     async pos=>{
       clearTimeout(gpsTimeout);
       const {latitude:la,longitude:lo,heading:hdg}=pos.coords;
